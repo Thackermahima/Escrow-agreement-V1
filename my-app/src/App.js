@@ -16,7 +16,10 @@ function App() {
   const [cancelled, setCancelled] = useState(false);
   const [totalAgreementCount, setTotalAgreementCount] = useState(0);
   const [walletConnected, setWalletConnected] = useState(false);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoadingAgreements, setLoadingAgreements] = useState(false);
+  const [isLoadingRelease, setLoadingRelease] = useState(false);
+  const [isLoadingCancel, setLoadingCancel] = useState(false);
+
   const [allAgreements, setAllAgreements] = useState([]);
   const web3ModalRef = useRef();
   const connectWallet = async () => {
@@ -29,6 +32,7 @@ function App() {
   };
   const _createAgreement = async () => {
     try {
+
       if (agreementId == null && clientAddress == null) {
         alert("Please enter valid fields");
       }
@@ -40,12 +44,12 @@ function App() {
         clientAddress,
         { value: ethers.utils.parseEther(amount) }
       );
-      setLoading(true);
+      setLoadingAgreements(true);
       await tx.wait();
       setAgreementId("");
       setAmount(0);
       setAmountReleased(false);
-      setLoading(false);
+      setLoadingAgreements(false);
       alert("Escrow agreement created successfully.");
     } catch (error) {
       console.log(error, "Error from _createAgreement");
@@ -54,15 +58,20 @@ function App() {
 
   const _releaseFunds = async (agreementid) => {
     try {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      console.log(agreementid);
       if (amountReleased == true) {
         alert("There is no fund to release!");
       }
       const signer = await getProviderOrSigner(true);
+      console.log(signer)
       const contract = await getEscrowContractInstance(signer);
       const tx = await contract.releaseFunds(agreementid);
-      setLoading(true);
+      setLoadingRelease(true);
       await tx.wait();
-      setLoading(false);
+      setLoadingRelease(false);
       alert("Amount is released successfully!")
       setAmountReleased(true);
     } catch (error) {
@@ -76,9 +85,9 @@ function App() {
       const contract = await getEscrowContractInstance(signer);
 
       const tx = await contract.cancel(id);
-      setLoading(true);
+      setLoadingCancel(true);
       await tx.wait();
-      setLoading(false);
+      setLoadingCancel(false);
       setCancelled(true);
       alert("Amount is cancelled successfully!");
       console.log("Cancelled successfully");
@@ -183,7 +192,7 @@ const fetchAllAgreements = async() => {
           placeholder="Enter agreement Id"
           onChange={(e) => setAgreementId(e.target.value)}
         />
-        {isLoading ? (
+        {isLoadingAgreements ? (
           <button className="button1">Loading..</button>
         ) : (
           <button className="button1" onClick={_createAgreement}>
@@ -205,12 +214,12 @@ const fetchAllAgreements = async() => {
               <p>Service Provider : {es.serviceProvider}</p> 
               <p>Amount : {ethers.utils.formatEther(es.amount.toString())}</p> 
             
-              {isLoading ? (
+              {isLoadingRelease ? (
           <button className="button3">Loading..</button>
         ) : (
   <button onClick={() => {_releaseFunds(id)}} className="button2">Release</button>              
         )}
-        {isLoading ? (
+        {isLoadingCancel ? (
           <button className="button3">Loading..</button>
         ) : (
                 <button onClick={() => {_cancelFunds(id)}} className="button3">Cancel</button>
